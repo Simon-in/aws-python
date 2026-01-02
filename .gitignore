@@ -1,0 +1,88 @@
+# Python虚拟环境
+venv/
+.venv/
+env/
+ENV/
+*.env
+
+# Python编译文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 日志文件
+*.log
+logs/
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 测试报告和覆盖率
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# 打包文件
+dist/
+build/
+*.egg-info/
+
+# AWS配置文件
+.aws/
+aws_config.json
+
+# Azure配置文件
+.azure/
+
+# Rclone配置
+rclone.conf
+.rclone.conf
+
+# 密钥和凭证文件
+*.pem
+*.key
+*.crt
+*.passwd
+*.secret
+secrets.json
+
+# 临时目录
+/tmp/
+/var/tmp/
+/tmp_*
+
+# 数据文件（可选，根据实际情况调整）
+# *.csv
+# *.xlsx
+# *.parquet
+
+# Snowflake相关文件
+.snowflake/
+
+# Glue相关文件
+.glue/
+
+# 执行文件
+*.exe
+*.bin
+
+# 数据库文件
+*.db
+*.sqlite3
+
+# 环境变量文件
+.env.*
+!.env.example
+
+# 其他临时文件
+*.tmp
+*.temp
+.cache/
