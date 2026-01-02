@@ -242,8 +242,8 @@ def dataverse_source_landing_func(
         entity_config: dict,
         page_size: int = 5000
 ):
-    sm_client = _client("secretsmanager")
     # default landing file format parquet
+    sm_client = _client("secretsmanager")
     try:
         secret_name = entity_config.get("conn_id")
         token_secret_name = entity_config.get("token_id")
@@ -328,7 +328,6 @@ def StockForecast_source_landing_func(entity, entity_config):
     secret_name = entity_config.get("conn_id", "phcdp/stockforecast")
     url = entity_config.get("api_url")
     max_page_size = entity_config.get("pagesize", 5000)
-    # batch_size = entity_config.get("batch_size", 30000)
     request_delay = entity_config.get("request_delay", 1)
 
     stock_config = get_secret(secret_name)[1]
