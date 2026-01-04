@@ -1,0 +1,14 @@
+# Include the README and LICENSE files
+include README.md
+include LICENSE
+
+# Include all the Python modules
+recursive-include modules *.py
+recursive-include AWS *.py
+recursive-include Dataverse *.py
+recursive-include SnowFlake *.py
+
+# Exclude any __pycache__ directories
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyo
