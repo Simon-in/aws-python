@@ -1,11 +1,6 @@
-"""
-Common landing job  for bayer-cdp glue etl pipeline: pull data from different source like api, s3, sftp, relationship
-database etc...
-"""
 import datetime
 import json
 import os
-import re
 import tempfile
 
 from modules.client import _client, _logger
@@ -13,13 +8,11 @@ from modules.conf import ConfigGlobal
 from modules.dynamodb import get_entity_config
 from modules.glue_args import get_glue_args
 from modules.glue import get_job_run_id
-from modules.redshift import redshift_insert_func, redshift_query_executor
-from modules.s3 import s3_copy_func, s3_client, s3_upload
+from modules.s3 import s3_upload
 from modules.secret_manager import get_secret
-from modules.dsl import render
 from botocore.exceptions import ClientError
 from pytz import timezone
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 import requests
 from tenacity import *
 import msal
@@ -183,7 +176,7 @@ def dataverse_source_landing_func(
 
 def StockForecast_source_landing_func(entity, entity_config):
     # default landing file format parquet
-    secret_name = entity_config.get("conn_id", "phcdp/stockforecast")
+    secret_name = entity_config.get("conn_id", "stockforecast")
     url = entity_config.get("api_url")
     max_page_size = entity_config.get("pagesize", 5000)
     request_delay = entity_config.get("request_delay", 1)

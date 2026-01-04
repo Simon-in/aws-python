@@ -1,3 +1,8 @@
+"""
+AWS 客户端和日志管理模块
+
+提供 AWS 客户端生成和日志记录功能，包含重试机制，确保服务调用的可靠性
+"""
 import logging
 import sys
 from itertools import islice

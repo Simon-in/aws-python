@@ -10,16 +10,8 @@ from modules.email import email_sender
 from modules.glue_args import get_glue_args
 from modules.conf import ConfigGlobal
 from modules.s3 import s3_delete_object, s3_parser_to_bucket_prefix, s3_client
-from modules.secret_manager import get_secret
-from bayer_cdp_common_utils.snowflake_handler import SnowflakeConnector
+from modules.snowflake import SnowflakeConnector
 
-"""
-        glue 中的参数
-        SUBJECT
-        BODY
-        TO
-        ATTACHMENT_CONF
-"""
 
 
 def snowflake_to_email_func(
@@ -125,24 +117,10 @@ if __name__ == '__main__':
     retry = int(args["RETRY"])
     delay = int(args["DELAY"])
     attachment_conf = ast.literal_eval(args["ATTACHMENT_CONF"]) if args["ATTACHMENT_CONF"] else {}
-    # context_params = ast.literal_eval(args["CONTEXT_PARAMS"]) if args["CONTEXT_PARAMS"] else {}
     source_system = args["SOURCE_SYSTEM"]
 
-    # 获取连接
     SF_CONN_ID = ConfigGlobal.snowflake_secret
     sf_conn = SnowflakeConnector.from_secret(SF_CONN_ID)
-
-    # for key, sql in context_params.items():  # 功能不需要
-    #     query_res = redshift_query_executor(
-    #         cluster_id=cluster_id,
-    #         db_name=rs_db,
-    #         sql=sql,
-    #         retry=retry,
-    #         delay=delay,
-    #     )
-    #     assert len(query_res) == 1 and len(
-    #         query_res[0]) == 1, f"Exception: Email context_sql returned more than ONE row: {sql}"
-    #     main_content = re.sub(r"{{" + key + r"}}", str(list(query_res[0][0].values())[0]), main_content)
 
     snowflake_to_email_func(
         subject=subject,
@@ -152,4 +130,3 @@ if __name__ == '__main__':
         mime_type=mime_type,
         attachment_conf=attachment_conf
     )
-    glue_end_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

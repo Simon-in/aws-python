@@ -32,7 +32,7 @@ class DataverseAuthError(DataverseError):
 class RetailPPSuccessWAL(S3WAL):
     def __init__(self, domain, entity, load_id, bucket: str = None):
         if not bucket:
-            bucket = f"ph-cdp-raw-{env}-cn-north-1"
+            bucket = f"ph-raw-{env}-cn-north-1"
         self.filename = (
             f"s3://{bucket}/{domain}/wal_log/{entity}/{load_id}/success/{load_id}.json"
         )
@@ -42,7 +42,7 @@ class RetailPPSuccessWAL(S3WAL):
 class RetailPPFailedWAL(S3WAL):
     def __init__(self, domain, entity, load_id, bucket: str = None):
         if not bucket:
-            bucket = f"ph-cdp-raw-{env}-cn-north-1"
+            bucket = f"ph-raw-{env}-cn-north-1"
         self.filename = f"s3://{bucket}/{domain}/wal_log/{entity}/{load_id}/failed/{load_id}.json"
         super(RetailPPFailedWAL, self).__init__(self.filename)
 
@@ -214,9 +214,9 @@ if __name__ == "__main__":
     """  Dynamodb config
         {
          "domain": "enriched_retail",
-         "entity": "crc5f_sales_data_100k_xinyus",
-         "api_conn_id": "phcdp/redshift/retail_pp",
-         "api_conn_token": "phcdp/redshift/retail_pp_token",
+         "entity": "sales_data_100k_xinyus",
+         "api_conn_id": "redshift/retail",
+         "api_conn_token": "redshift/retailtoken",
          "api_request_fields": "orderid,customer,product,amount,date",
          "extract_query": "select * from enriched_retail.sales_data",
          "field_title": "crc5f"
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     LOG.info(f"Login success, token: {api.get_token()}")
     local_path = redshift_unload(
         extract_query,
-        s3_path=f"s3://ph-cdp-raw-{env}-cn-north-1/{domain}/wal_log/{entity}/{load_id}/source/",
+        s3_path=f"s3://ph-raw-{env}-cn-north-1/{domain}/wal_log/{entity}/{load_id}/source/",
         to_local=True,
     )
     jsonl_files = list(Path(local_path).glob("*.json"))

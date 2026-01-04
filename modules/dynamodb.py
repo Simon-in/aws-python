@@ -1,3 +1,8 @@
+"""
+DynamoDB 操作模块
+
+提供 DynamoDB 表的操作功能，包括获取实体配置、更新代理表、获取表列、创建/更新项目、获取 Glue 偏移量加载 ID 等
+"""
 import time
 
 import boto3

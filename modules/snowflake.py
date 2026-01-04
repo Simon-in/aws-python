@@ -1,4 +1,10 @@
+"""
+Snowflake 数据库操作模块
+
+提供 Snowflake 数据库的连接和操作功能，支持密码和私钥两种认证方式，包含执行查询、获取 stage 位置等功能
+"""
 import time
+import base64
 from typing import Union, List, Dict
 
 from modules.client import logger
@@ -6,14 +12,9 @@ from modules.secret_manager import get_secret
 
 from snowflake import connector as sf_conn
 from snowflake.connector import SnowflakeConnection, DictCursor
-from snowflake.connector.cursor import SnowflakeCursor
 from snowflake.connector.errors import ProgrammingError
-from snowflake.connector.constants import (
-    DEFAULT_TIMEOUT,
-    DEFAULT_MAX_RETRY_COUNT,
-    DEFAULT_RETRY_WAIT_INTERVAL,
-)
-from snowflake.connector.options import OptionValue
+
+LOG = logger()
 
 
 class Snowflake:

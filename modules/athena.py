@@ -1,3 +1,8 @@
+"""
+Athena 服务操作模块
+
+提供 Athena 数据库的各种操作功能，包括表管理、查询执行、结果处理等
+"""
 from time import sleep
 
 from botocore.exceptions import ClientError

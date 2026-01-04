@@ -1,6 +1,5 @@
 import datetime
-from modules.client import _logger
-from bayer_cdp_common_utils.snowflake_handler import SnowflakeConnector
+from modules.snowflake import SnowflakeConnector
 from modules.glue_args import get_glue_args, OptionValue
 from modules.glue import get_job_run_id
 from modules.conf import ConfigGlobal
@@ -71,7 +70,7 @@ def s3_sync_sftp(current_date):
     sync_inplace = OptionValue.get_bool(args["SYNC_INPLACE"])
 
     source_alias = entity_config.get("source_alias") or args["SOURCE_ALIAS"]
-    source_prefix = f"bay-cph-cdp-{env}-az-ap-southeast-1/poa/archive/{country_code}/{domain}/{entity}/{current_date}/{load_id}/"
+    source_prefix = f"bay-{env}-az-ap-southeast-1/archive/{country_code}/{domain}/{entity}/{current_date}/{load_id}/"
 
     target_alias = entity_config.get("target_alias") or args["TARGET_ALIAS"]
     target_prefix = entity_config.get("target_prefix")

@@ -1,3 +1,8 @@
+"""
+AWS Secrets Manager 操作模块
+
+提供从 AWS Secrets Manager 获取密钥的功能，支持字符串和二进制类型的密钥
+"""
 import base64
 import json
 from modules.client import client

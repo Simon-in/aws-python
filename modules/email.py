@@ -1,3 +1,8 @@
+"""
+邮件发送服务模块
+
+提供邮件发送功能，支持附件、CC收件人、HTML内容等，集成了Redshift结果导出到邮件的功能
+"""
 import os.path
 import re
 import smtplib
@@ -27,7 +32,7 @@ SMTP_HOST = smtp_conn[0]
 SMTP_PORT = int(smtp_conn[1])
 SMTP_USER = smtp_conn[2]
 SMTP_PASSWORD = smtp_conn[3]
-DEFAULT_SENDER = "cncdp_notification@bayer.com"
+DEFAULT_SENDER = "shanjianqing2022@163.com"
 env = ConfigGlobal.env
 
 

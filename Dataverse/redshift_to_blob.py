@@ -27,7 +27,7 @@ class azure_blob:
         self.endpoint = secrets.get("endpoint")
         self.account_name = secrets.get("account")
         self.table = args["TABLE"]
-        self.blob = f"cdp-sync/{self.table}/"
+        self.blob = f"sync/{self.table}/"
         self.statement = args["SQL"]
         self.s3 = args["S3_PATH"]
         self.container_name = args["CONTAINER"]
@@ -102,7 +102,7 @@ class azure_blob:
 
     def redshift_upload_local(self):
         try:
-            Bucket = f"ph-cdp-{'prod' if self.env == 'prod' else f'nprod-{self.env}'}-cn-north-1"
+            Bucket = f"ph-{'prod' if self.env == 'prod' else f'nprod-{self.env}'}-cn-north-1"
             prefix = f"{self.s3}{self.load_id}/{self.table}/"
             sql = textwrap.dedent(
                 f"""
@@ -132,11 +132,11 @@ class azure_blob:
 if __name__ == "__main__":
     """
             SQL : select * from model_retail.v_test_lin_export
-            SECRET : phcdp/redshift/retail_dataverse
-            S3_PATH : ph-cdp-sftp-outbound-dev/retail_pp/
-            CONTAINER : retail-data-management-dev
+            SECRET : redshift/dataverse
+            S3_PATH : ph-sftp-outbound-dev/retail/
+            CONTAINER : data-management-dev
             TABLE : test_lin
-            RS_DB : cn_cdp_retail_dev
+            RS_DB : retail_dev
     """
     args = get_glue_args(
         positional=["LOAD_ID", "SQL", "S3_PATH", "SECRET", "CONTAINER", "RS_DB", "TABLE"],

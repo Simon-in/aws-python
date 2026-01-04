@@ -1,3 +1,8 @@
+"""
+Write-Ahead Log (WAL) 模块
+
+提供 Write-Ahead Log 功能，支持本地文件和 S3 存储两种实现，用于可靠地记录和同步数据
+"""
 import json
 import os.path
 from pathlib import Path

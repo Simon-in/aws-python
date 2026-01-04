@@ -1,3 +1,8 @@
+"""
+Redshift 数据库操作模块
+
+提供 Redshift 数据库的各种操作功能，包括查询执行、数据卸载、表操作等，集成了 S3 数据交互
+"""
 import datetime
 import json
 import os.path

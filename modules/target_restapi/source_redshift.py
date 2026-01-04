@@ -1,3 +1,8 @@
+"""
+Redshift 数据卸载到 REST API 模块
+
+提供从 Redshift 卸载数据到 S3 的功能，支持 JSON 和 Parquet 格式，用于后续发送到 REST API
+"""
 import textwrap
 from typing import Optional
 
@@ -27,7 +32,7 @@ def execute_statement(sql, batch=False, **kwargs):
     )
 
 
-raw_bucket = f"ph-cdp-raw-{ConfigGlobal.env}-{ConfigGlobal.region}"
+raw_bucket = f"ph-raw-{ConfigGlobal.env}-{ConfigGlobal.region}"
 
 
 def unload_redshift_to_s3(

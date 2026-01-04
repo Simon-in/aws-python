@@ -1,3 +1,8 @@
+"""
+Rclone 二进制文件管理模块
+
+提供 Rclone 二进制文件的下载、安装和管理功能，支持从 S3 或 HTTP/HTTPS 源下载二进制文件
+"""
 import os
 from pathlib import Path
 from shutil import which

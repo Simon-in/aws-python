@@ -1,3 +1,8 @@
+"""
+Rclone 核心功能模块
+
+提供 Rclone 工具的核心功能封装，包括配置管理、远程存储操作、文件同步等功能
+"""
 import os
 import textwrap
 from enum import Enum

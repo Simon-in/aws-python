@@ -1,7 +1,7 @@
 """
+全局配置管理模块
 
-Constant values as configuration
-
+从密钥管理器获取配置信息，提供全局常量和配置类，统一管理项目的配置参数
 """
 import time
 import datetime

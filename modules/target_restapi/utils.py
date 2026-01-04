@@ -1,3 +1,8 @@
+"""
+REST API 目标端工具函数模块
+
+提供 REST API 目标端相关的工具函数，包括缓存目录管理、S3 操作、文件读取和数据转换等功能
+"""
 import logging
 import os
 import sys

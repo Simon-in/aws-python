@@ -1,3 +1,8 @@
+"""
+Rclone 工具实用函数模块
+
+提供 Rclone 工具的实用函数，包括命令执行、跨平台命令处理等功能
+"""
 import sys
 import tempfile
 from subprocess import Popen, PIPE, STDOUT

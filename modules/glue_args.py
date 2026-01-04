@@ -1,5 +1,7 @@
 """
-https://stackoverflow.com/a/58083506/7700479
+Glue 作业参数处理模块
+
+提供 Glue 作业参数的解析、验证和处理功能，包括必填参数、可选参数处理、参数类型转换等
 """
 import json
 import sys

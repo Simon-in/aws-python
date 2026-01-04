@@ -1,3 +1,8 @@
+"""
+S3 存储服务操作模块
+
+提供 S3 存储服务的各种操作功能，包括路径解析、对象上传下载、文件处理、异步请求等
+"""
 import asyncio
 import os.path
 from pathlib import Path
