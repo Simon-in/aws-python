@@ -10,8 +10,9 @@ from modules.s3 import s3_parser_to_bucket_prefix, s3_client, is_s3_path_empty, 
 from shlex import quote
 from modules.rclone import Config as RConfig
 from modules.rclone import RClone
+from modules.client import logger
 
-LOG = _logger()
+LOG = logger()
 
 
 class _RClone(RClone):
@@ -37,7 +38,7 @@ def copy_rename_s3(source_path, target_path):
     target_bucket, target_prefix, _ = s3_parser_to_bucket_prefix(target_path)
     copy_source = {'Bucket': source_bucket, 'Key': source_prefix}
     s3_client.copy(copy_source, target_bucket, target_prefix)
-    print(f"The file was successfully copied from {source_bucket} to {target_bucket} and renamed to {target_prefix}")
+    LOG.info(f"The file was successfully copied from {source_bucket} to {target_bucket} and renamed to {target_prefix}")
 
 
 def is_archive_folder(tmp_path):
@@ -45,14 +46,14 @@ def is_archive_folder(tmp_path):
     thirty_days_ago = current_date - datetime.timedelta(days=int(is_del_day))
     thirty_days_ago_str = datetime.datetime.strftime(thirty_days_ago, "%Y-%m-%d")
     current_date = datetime.datetime.strftime(current_date, "%Y-%m-%d")
-    archive_path = f"s3://bay-cph-cdp-{env}-az-ap-southeast-1/poa/archive/{country_code}/{domain}/{entity}/{current_date}/{load_id}/{file_name}.{suffix}"
-    thirty_days_ago_path = f"s3://bay-cph-cdp-{env}-az-ap-southeast-1/poa/archive/{country_code}/{domain}/{entity}/{thirty_days_ago_str}/"
+    archive_path = f"s3://bay-{env}-az-ap-southeast-1/you/archive/{country_code}/{domain}/{entity}/{current_date}/{load_id}/{file_name}.{suffix}"
+    thirty_days_ago_path = f"s3://bay-{env}-az-ap-southeast-1/you/archive/{country_code}/{domain}/{entity}/{thirty_days_ago_str}/"
     copy_rename_s3(tmp_path, archive_path)
     s3_sync_sftp(current_date)
     if not is_s3_path_empty(thirty_days_ago_path):
         s3_delete_folder(thirty_days_ago_path)
-    print("current_date:", current_date)
-    print("thirty_days_ago:", thirty_days_ago_str)
+    LOG.info("current_date:", current_date)
+    LOG.info("thirty_days_ago:", thirty_days_ago_str)
 
 
 def get_stage_location(snowflake_stage):
@@ -61,7 +62,7 @@ def get_stage_location(snowflake_stage):
     if stage_info:
         stage_name = list(stage_info.keys())[0]
         stage_location = list(stage_info.values())[0]
-        print(f"Stage Name: {stage_name}, Stage Location: {stage_location}")
+        LOG.info(f"Stage Name: {stage_name}, Stage Location: {stage_location}")
     return stage_location
 
 
@@ -114,11 +115,10 @@ if __name__ == '__main__':
             "ENV": ConfigGlobal.env,
             "RCLONE_DEBUG": "true",
             "SYNC_INPLACE": "false",
-            "SOURCE_ALIAS": "poa_s3",
-            "TARGET_ALIAS": "poa_sftp",
+            "SOURCE_ALIAS": "s3",
+            "TARGET_ALIAS": "sftp",
         }
     )
-    # 获取glue参数
     domain = args["DOMAIN"]
     entity = args["ENTITY"]
     region = args["REGION"]

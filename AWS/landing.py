@@ -29,148 +29,6 @@ import time
 LOG = _logger()
 
 
-def get_df_from_rdms(spark, query: str, sys_name: str):
-    db_username = conn_info.get('username')
-    db_password = conn_info.get('password')
-    port = conn_info.get('port')
-    server = conn_info.get('server')
-
-    if sys_name == "mssql":
-        return spark.read \
-            .format("com.microsoft.sqlserver.jdbc.spark") \
-            .options(
-            driver='com.microsoft.sqlserver.jdbc.SQLServerDriver',
-            url=f"jdbc:sqlserver://{server}:{port};databaseName={db_name};",
-            query=query,
-            user=db_username,
-            password=db_password
-        ).load()
-
-    elif sys_name == "mysql":
-        return spark.read \
-            .format("jdbc") \
-            .options(
-            driver='com.mysql.cj.jdbc.Driver',
-            url=f"jdbc:mysql://{server}:{port}/{db_name}",
-            query=query,
-            user=db_username,
-            password=db_password
-        ).load()
-    elif sys_name == "pgsql":
-        return spark.read \
-            .format("jdbc") \
-            .options(
-            driver='org.postgresql.Driver',
-            url=f"jdbc:postgresql://{server}:{port}/{db_name}",
-            query=query,
-            user=db_username,
-            password=db_password
-        ).load()
-
-
-def rdms_source_landing_func(spark, landing_bucket):
-    # default output format: parquet
-    landing_path = f"s3://{landing_bucket}/{domain}/{load_id}/{entity}/"
-    load_start_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    load_mode = entity_config.get("load_mode", "full")
-    inc_filter = ""
-    offset_col = entity_config.get('incremental_load_col')
-    if load_mode == "incremental":
-        assert offset_col, f"Incremental load mode must have 'incremental_load_col' in " \
-                           f"configuration: {domain}.{entity}"
-
-        query_max_offset = f"select max(load_offset) from " \
-                           f"{ConfigGlobal.redshift_log_schema}.{ConfigGlobal.redshift_incremental_load_log_table}" \
-                           f" where src_database = '{db_name}' and src_table = '{entity}' "
-        query_max_offset_res = redshift_query_executor(ConfigGlobal.redshift_cluster_id,
-                                                       ConfigGlobal.redshift_db_nm,
-                                                       query_max_offset)
-        max_offset = query_max_offset_res[0][0].get("stringValue")
-        if max_offset is not None:
-            inc_filter = f"where {offset_col} > {max_offset}"
-
-    elif load_mode == "customized":
-        assert entity_config.get('customized_load_sql'), f"Incremental load mode must have 'customized_load_sql' in " \
-                                                         f"configuration: {domain}.{entity}"
-    query_dict = dict(
-        zip(
-            ["full", "incremental", "customized"],
-            [f"select * from {schema}.{entity}" if schema else f"select * from {entity}",
-             f"select * from {schema}.{entity} {inc_filter}" if schema else f"select * from {entity} {inc_filter}",
-             entity_config.get("customized_load_sql", '')
-             ]
-        )
-    )
-    df = get_df_from_rdms(spark, query=query_dict[load_mode], sys_name=system_nm)
-    df = df.select([col(c).cast("string") for c in df.columns])
-    df.repartition(int(entity_config.get("landing_load_partitions", 10))).write.parquet(landing_path, mode="overwrite")
-    load_end_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    if load_mode == "incremental":
-        lz_df = spark.read.parquet(landing_path)
-        load_row_cnt = lz_df.count()
-        max_record = lz_df.groupby().agg(max_(offset_col)).select(f"max({offset_col})").collect()[0][0]
-        load_incremental_catalog_dict = dict(zip(
-            ConfigGlobal.rdms_load_catalog_cols, ["Microsoft SQLServer", domain, entity, "AWS S3", landing_path,
-                                                  job_name, job_run_id, load_start_time, load_end_time,
-                                                  load_row_cnt, max_record]
-        ))
-        redshift_insert_func(
-            ConfigGlobal.redshift_cluster_id,
-            ConfigGlobal.redshift_db_nm,
-            ConfigGlobal.redshift_log_schema,
-            ConfigGlobal.api_load_catalog_cols,
-            [load_incremental_catalog_dict]
-        )
-
-
-def s3_source_landing_func(s3_client, landing_bucket):
-    suffix = entity_config["landing_file_format"]
-    source_bucket = entity_config.get("s3_source_bucket",
-                                      f"ph-cdp-nprod-{env}-{region}" if env != "prod" else f"ph-cdp-{env}-{region}")
-    source_prefix = render(entity_config.get("s3_source_prefix", f"ph-cdp-sftp-inbound-{env}/{domain}/{entity}/"))
-    source_prefix = source_prefix if source_prefix.endswith("/") else source_prefix + "/"
-
-    archive_bucket = entity_config.get("archive_bucket",
-                                       f"ph-cdp-nprod-{env}-{region}" if env != "prod" else f"ph-cdp-{env}-{region}")
-    archive_prefix = render(entity_config.get("archive_prefix",
-                                              f"ph-cdp-sftp-inbound-{env}/archive/{domain}/{entity}/{load_id}/"))
-    archive_prefix = archive_prefix if archive_prefix.endswith("/") else archive_prefix + "/"
-    LOG.info(f"Source bucket is: {source_bucket} and source Prefix is: {source_prefix}")
-    key_items = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=source_prefix)
-    LOG.info(f"List source keys: {key_items.get('Contents', [])}")
-    replace_file_name = render(entity_config.get("replace_file_name", "").replace('{cn_date}', cn_date))
-    sr_file_pattern = render(entity_config.get("source_file_pattern", ""))
-    data_file_ptn = rf"{source_prefix}{sr_file_pattern}\.{suffix}$"  # use re to filter valid source file
-    signal_file_ptn = rf"{source_prefix}{sr_file_pattern}\.ok$"  # use re to filter valid signal file
-    LOG.info(f"Data file pattern is: {data_file_ptn} and signal file pattern is: {signal_file_ptn}")
-    data_keys = [key.get("Key") for key in key_items.get("Contents", []) if re.match(data_file_ptn, key.get("Key"))]
-    signal_keys = [key.get("Key") for key in key_items.get("Contents", []) if re.match(signal_file_ptn, key.get("Key"))]
-    is_archive = entity_config.get("is_archive", "true").lower() == "true"
-
-    if replace_file_name:
-        assert data_keys.__len__() == 1, "Found multi source file while replace_file_name is needed, " \
-                                         "please check configuration"
-        for rep_file in replace_file_name.split(";"):
-            s3_copy_func(source_bucket,
-                         data_keys[0],
-                         source_bucket,
-                         source_prefix + rep_file + "." + suffix)
-    for data_key in data_keys:
-        file_nm = data_key.split("/")[-1]
-        target_key = f"{domain}/{load_id}/{entity}/{file_nm}"
-        s3_copy_func(source_bucket, data_key, landing_bucket, target_key)  # copy source file to landing layer
-        if is_archive:
-            s3_copy_func(source_bucket, data_key, archive_bucket, archive_prefix + file_nm)  # archive data
-
-    if is_archive:
-        s3_client.delete_objects(  # delete files in source prefix
-            Bucket=source_bucket,
-            Delete={
-                "Objects": [{"Key": key} for key in [*data_keys, *signal_keys]]
-            }
-        )
-
-
 class DataverseError(Exception):
     pass
 
@@ -463,43 +321,15 @@ if __name__ == '__main__':
     region = args['REGION']
     load_id = args["LOAD_ID"]
 
-    cn_date = datetime.datetime.now(tz=timezone("Asia/Shanghai")).strftime("%Y%m%d")
     entity_config = get_entity_config(domain, entity)
     source_system = entity_config['source_system']
-    landing_bucket = f"ph-cdp-landing-{env}-{region}"
+    landing_bucket = f"landing-{env}-{region}"
     if len(source_system.split("_")) > 0:
         system_nm = source_system.split("_")[0]
     else:
         system_nm = source_system
 
-    if system_nm == "sftp":
-        s3_source_landing_func(_client("s3"), f"ph-cdp-landing-{env}-{region}")
-    elif system_nm in ("mssql", "mysql", "pgsql"):
-        from pyspark.sql.functions import max as max_, col
-        from pyspark.sql import SparkSession
-
-        spark_session = SparkSession.builder \
-            .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-            .getOrCreate()
-
-        db_name = entity_config.get("src_database", "dev")
-        schema = entity_config.get("src_schema", "public")
-        conn_info = get_secret(entity_config.get("conn_id", f"phcdp/{system_nm}/{db_name}"))[1]
-
-        rdms_source_landing_func(spark_session, f"ph-cdp-landing-{env}-{region}")
-
-    elif system_nm == "salesforce":
-        sf_identifier = entity_config["salesforce_identifier"]
-        sf_name = entity_config["salesforce_name"]
-        sql_query = entity_config.get("sql_query")
-        if sql_query:
-            salesforce_source_landing_func(
-                sql_query, f"ph-cdp-landing-{env}-{region}"
-            )
-        else:
-            raise ValueError(f"sql_query can not be empty!")
-
-    elif system_nm == "dataverse":
+    if system_nm == "dataverse":
         dataverse_source_landing_func(entity, entity_config)
 
     elif system_nm == "stockforecast":

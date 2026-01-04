@@ -15,6 +15,9 @@ from modules.rclone.utils import (
 from modules.conf import ConfigGlobal
 from modules.secret_manager import get_secret
 import boto3
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import base64
 
 
 __all__ = ["RClone", "RemoteTypes", "Config"]
@@ -22,11 +25,44 @@ __all__ = ["RClone", "RemoteTypes", "Config"]
 
 RCLONE = "rclone"
 RCLONE_DOWNLOAD_URL = (
-    f"s3://ph-cdp-landing-{ConfigGlobal.env}-cn-north-1/retail/rclone/libs/bin/"
+    f"s3://landing-{ConfigGlobal.env}-cn-north-1/retail/rclone/libs/bin/"
     f"rclone-v1.64.2-linux-amd64/rclone"
 )
 RCLONE_BIN_PATH = "/tmp/opt/rclone/bin/rclone"
 RCLONE_CONFIG_PATH = "/tmp/opt/rclone/.config/rclone.conf"
+
+
+cryptKey = type[int](
+    [
+        0x9c,
+        0x8f,
+        0x9a,
+        0x9b,
+        0x8e,
+        0x99,
+        0x98,
+        0x97,
+        0x96,
+        0x95,
+        0x94,
+        0x93,
+        0x92,
+        0x91,
+        0x90
+    ]
+)
+
+
+def crypt(in_bytes, iv):
+    cipher = AES.new(cryptKey, AES.MODE_CBC, iv, nonce=b"", initializer_value=iv)
+    return cipher.encrypt(in_bytes)
+
+
+def obscure(x):
+    plaintext = x.decode("utf-8")
+    iv = get_random_bytes(AES.block_size)
+    ciphertext = crypt(plaintext, iv)
+    return base64.urlsafe_b64encode(iv + ciphertext).decode("utf-8")
 
 
 class RemoteTypes(str, Enum):
@@ -130,6 +166,21 @@ class Config:
                 account = {self.properties.get("account")}
                 key = {self.properties.get("key")}
                 endpoint = {self.properties.get("endpoint")}
+            """
+        )
+    
+    def sftp(self):
+        obscure_password = obscure(self.properties.get("password"))
+        return textwrap.dedent(
+            f"""
+                [{self.alias}]
+                type = {RemoteTypes.sftp.value}
+                host = {self.properties.get("host")}
+                user = {self.properties.get("user")}
+                password = {obscure_password}
+                port = {self.properties.get("port")}
+                md5sum_command = none
+                sha1sum_command = none
             """
         )
 
