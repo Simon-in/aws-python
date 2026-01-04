@@ -14,6 +14,7 @@
 - 邮件发送服务
 - REST API 交互
 - Rclone 数据同步
+- Salesforce 数据集成
 - 等等...
 
 ## 目录结构
@@ -21,7 +22,6 @@
 ```
 aws-python/
 ├── AWS/                    # AWS 相关功能模块
-│   ├── lambda_trigger.py   # Lambda 触发器
 │   ├── landing.py          # 数据落地作业
 │   └── unload_external_table.py  # 外部表卸载
 ├── Dataverse/              # Dataverse 集成模块
@@ -32,21 +32,27 @@ aws-python/
 │   └── email.py            # 邮件发送服务
 ├── modules/                # 核心模块库
 │   ├── rclone/             # Rclone 封装
+│   │   ├── __init__.py
+│   │   ├── bin.py
+│   │   ├── rclone.py
+│   │   └── utils.py
 │   ├── target_restapi/     # REST API 目标端
+│   │   ├── __init__.py
+│   │   ├── source_redshift.py
+│   │   ├── utils.py
+│   │   └── wal.py
 │   ├── __init__.py
 │   ├── athena.py           # Athena 服务封装
 │   ├── client.py           # AWS 客户端生成器
 │   ├── conf.py             # 全局配置
-│   ├── dsl.py              # DSL 模板渲染
 │   ├── dynamodb.py         # DynamoDB 处理
 │   ├── email.py            # 邮件服务
-│   ├── excel.py            # Excel 处理
-│   ├── glue.py             # Glue 作业处理
 │   ├── glue_args.py        # Glue 参数解析
 │   ├── redshift.py         # Redshift 处理
 │   ├── s3.py               # S3 操作
+│   ├── salesforce.py       # Salesforce 集成
 │   ├── secret_manager.py   # 密钥管理器
-│   └── sql_builder.py      # SQL 构建器
+│   └── snowflake.py        # Snowflake 集成
 └── README.md               # 项目文档
 ```
 
@@ -82,23 +88,7 @@ region = ConfigGlobal.region
 redshift_db = ConfigGlobal.redshift_db_nm
 ```
 
-### 3. DSL 模板渲染 (dsl.py)
-
-用于动态生成字符串，支持 SQLite 函数表达式。
-
-```python
-from modules.dsl import render
-
-# 渲染包含时间表达式的 S3 路径
-path = render("s3://bucket/{{date('now', 'localtime')}}/data.csv")
-# 输出: s3://bucket/2026-01-02/data.csv
-
-# 渲染复杂表达式
-complex_path = render("s3://bucket/{{strftime('%Y%m%d', 'now')}}/{{current_time}}.xlsx")
-# 输出: s3://bucket/20260102/14:30:45.xlsx
-```
-
-### 4. S3 操作 (s3.py)
+### 3. S3 操作 (s3.py)
 
 提供了丰富的 S3 操作功能，包括文件上传、下载、复制、删除等。
 
@@ -115,7 +105,7 @@ s3_download(bucket="my-bucket", key="prefix/data.csv", local_path="/tmp/download
 s3_copy_func(source_bucket="source-bucket", source_key="source/key", dest_bucket="dest-bucket", dest_key="dest/key")
 ```
 
-### 5. Redshift 处理 (redshift.py)
+### 4. Redshift 处理 (redshift.py)
 
 封装了 Redshift 数据库的交互操作，包括查询执行和数据插入。
 
@@ -139,7 +129,7 @@ redshift_insert_func(
 )
 ```
 
-### 6. 密钥管理 (secret_manager.py)
+### 5. 密钥管理 (secret_manager.py)
 
 用于从 AWS Secrets Manager 获取密钥和配置信息。
 
@@ -153,7 +143,7 @@ if not error:
     password = secret_dict.get("password")
 ```
 
-### 7. DynamoDB 处理 (dynamodb.py)
+### 6. DynamoDB 处理 (dynamodb.py)
 
 提供了 DynamoDB 表的操作功能。
 
@@ -164,7 +154,7 @@ from modules.dynamodb import get_entity_config
 config = get_entity_config(domain="my-domain", entity="my-entity")
 ```
 
-### 8. 邮件服务 (email.py)
+### 7. 邮件服务 (email.py)
 
 封装了邮件发送功能。
 
@@ -178,6 +168,57 @@ email_sender(
     to=["user@example.com"],
     attachments=["/tmp/attachment.pdf"]
 )
+```
+
+### 8. Snowflake 集成 (snowflake.py)
+
+提供了 Snowflake 数据库的连接和操作功能。
+
+```python
+from modules.snowflake import SnowflakeConnector
+
+# 创建 Snowflake 连接
+connector = SnowflakeConnector(
+    account="my-account",
+    user="my-user",
+    password="my-password",
+    warehouse="my-warehouse",
+    database="my-database",
+    schema="my-schema"
+)
+
+# 执行查询
+result = connector.execute_query("SELECT * FROM table LIMIT 10")
+
+# 关闭连接
+connector.close()
+```
+
+### 9. Salesforce 集成 (salesforce.py)
+
+提供了 Salesforce API 的连接和批量数据提取功能。
+
+```python
+from modules.salesforce import SalesforceHandler
+
+# 创建 Salesforce 连接
+sf_handler = SalesforceHandler(
+    client_id="my-client-id",
+    client_secret="my-client-secret",
+    username="my-username",
+    password="my-password",
+    security_token="my-security-token"
+)
+
+# 批量提取数据
+extracted_data = sf_handler.bulk_extract(
+    object_name="Account",
+    query="SELECT Id, Name, Industry FROM Account",
+    batch_size=1000
+)
+
+# 获取令牌
+token = sf_handler.get_token()
 ```
 
 ## 使用示例
@@ -282,5 +323,5 @@ pip install -r requirements.txt
 
 ---
 
-**版本**: 1.0.0  
-**最后更新**: 2026-01-02
+**版本**: 1.1.0  
+**最后更新**: 2026-01-04
