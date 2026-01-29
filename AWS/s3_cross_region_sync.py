@@ -1,7 +1,7 @@
-from bayer_cdp_common_utils.conf import ConfigGlobal
-from bayer_cdp_common_utils.glue_argparser import get_glue_args
-from bayer_cdp_common_utils.client_generator import _logger
-from bayer_cdp_common_utils.redshift_handler import redshift_query_executor
+from modules.conf import ConfigGlobal
+from modules.glue_args import get_glue_args
+from modules.client import _logger
+from modules.redshift import redshift_query_executor
 import subprocess
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -160,3 +160,4 @@ if __name__ == "__main__":
         _batch(s3_list, src_bucket, dest, load_id, exclude)
     else:
         raise SystemError(f"Unsupported sync_type found: {sync_type}")
+
